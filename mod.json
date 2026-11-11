@@ -1,0 +1,12 @@
+{
+  "place": "none",
+  "title": "CLI Usage",
+  "focusable": true,
+  "overlay": {
+    "kind": "popup",
+    "at": "top",
+    "offset": 40,
+    "width": 440,
+    "height": 0.82
+  }
+}

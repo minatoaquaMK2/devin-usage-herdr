@@ -1,0 +1,6 @@
+.DS_Store
+gpui-kit.d.ts
+herdr.d.ts
+jsconfig.json
+*.error
+node_modules/
