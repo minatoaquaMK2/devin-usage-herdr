@@ -10,7 +10,7 @@ Before you install the mod, verify that your environment meets these requirement
 
 - macOS with `Herdr.app` installed in `/Applications/Herdr.app` or `~/Applications/Herdr.app`.
 - `herdr-app` CLI installed in `~/.local/bin/herdr-app` or on your `PATH`.
-- `python3` available on the local machine and on any monitored remote SSH host.
+- `sqlite3` available on the local machine and on any monitored remote SSH host.
 - One or more supported coding CLIs installed (`devin`, `agy`, or `codex`).
 
 ## Install the mod
@@ -86,18 +86,18 @@ Click a tab along the top of the panel to filter the display:
 
 - **All.** Shows compact summary cards for Devin, Antigravity, and Codex in a single view.
 - **Devin.** Shows cycle ACU consumption, active plan limits, model breakdown, tool call counts, and recent sessions.
-- **AGY.** Shows live per-model quota bars, reset countdowns, running language server status, and local conversation metrics.
+- **AGY.** Shows live per-model quota bars, reset countdowns, credit balances, and local conversation metrics.
 - **Codex.** Shows 5-hour primary and 7-day secondary rate-limit windows, cumulative token usage, model distribution, and recent threads.
 
 ### Switch the target machine
 
 The machine bar beneath the header controls where collectors run:
 
-- **Auto.** Tracks the machine attached to the active Herdr workspace tab (`cx.activeTab()?.machine`).
-- **Local.** Forces collection on the local Mac regardless of the active workspace tab.
-- **SSH host pills.** Connects to a specific SSH host discovered from `~/.ssh/config` or active Herdr tabs.
+- **Auto.** Tracks the machine attached to the active Herdr workspace (`spaces().find(s => s.active)?.machine` and `focused()`).
+- **Local.** Forces collection on the local Mac regardless of the active workspace.
+- **SSH host pills.** Connects to a specific SSH machine discovered from `spaces()` and `machines()`.
 
-To refresh local metrics immediately without probing remote quota endpoints, click **Sync** in the panel header. To force a full refresh that includes remote quota endpoints, run `herdr-app do cli-usage.refresh` from a terminal.
+To run a full refresh that queries both local databases and remote quota endpoints, click **Refresh** in the panel header or run `herdr-app do cli-usage.refresh` from a terminal.
 
 ## Control the mod from the CLI
 
@@ -121,10 +121,10 @@ herdr-app do cli-usage.tab:agy
 herdr-app do cli-usage.tab:codex
 ```
 
-If you keep the stock `main` layout instead of switching to `main-usage`, toggle the mod as a centered popup overlay:
+If you keep the stock `main` layout instead of switching to `main-usage`, open the mod as a centered popup overlay:
 
 ```sh
-herdr-app do layout.toggle:cli-usage
+herdr-app do mod.open '{"name":"cli-usage"}'
 ```
 
 ## Uninstall the mod
@@ -155,15 +155,15 @@ herdr-app do layout.switch '{"name":"main-usage"}'
 
 ### Devin shows cached or empty plan quota
 
-Devin live plan quota requires a valid session token in `~/.config/devin/RefreshToken` and an active `devin` CLI session. When `devin` is not running, the collector reads the most recent protobuf status cache from `~/.cache/devin/cli/user_status.*.bin`. Start a `devin` CLI session and click **Sync** to populate live cycle ACU figures.
+Devin live plan quota requires `windsurf_api_key` in `~/.local/share/devin/credentials.toml` to query `https://server.codeium.com/exa.seat_management_pb.SeatManagementService/GetUserStatus`. When live quota cannot be reached, the collector reads the most recent protobuf status cache from `~/.cache/devin/cli/user_status.*.bin`. Sign in to `devin` CLI and click **Refresh** to populate live cycle ACU figures.
 
 ### Antigravity shows local metrics without live model quota bars
 
-Live per-model quota bars require a running `language_server_macos_arm` or `language_server_macos_x64` process with `--app_data_dir antigravity`. When the Antigravity editor is closed, the collector still reports conversation and step counts from `~/.gemini/antigravity/conversations/*.pb`.
+Live per-model quota bars and credit balances come from running `agy -p "/usage" --output-format json` and `agy -p "/credits" --output-format json`. When the `agy` CLI cannot reach the quota service, the collector still reports conversation metrics from `~/.gemini/antigravity/conversation_summaries.db` and `~/.gemini/antigravity-cli/conversation_summaries.db`.
 
-### Remote SSH collection times out
+### Remote SSH collection fails or times out
 
-Herdr executes remote collector probes through `herdr.run(["sh", "-c", ...], { on: machine })`. Verify that the remote host is reachable over non-interactive SSH (`ssh <host> python3 --version`) and that `python3` is installed on the remote machine.
+Herdr executes remote collector commands through `exec(cmd, args, { on: machine })` and `readTextFile(path, { on: machine })`. Verify that the remote host is reachable over non-interactive SSH (`ssh <host> sqlite3 --version`) and that `sqlite3` is installed on the remote machine.
 
 ## Further reading
 
