@@ -1,6 +1,6 @@
 # Herdr CLI usage mod
 
-`cli-usage` is a user mod for Herdr that displays live quota and session token usage for Devin CLI, Antigravity (`agy`), and OpenAI Codex CLI. It adds a **Usage** button to the top-right titlebar beside **Files** and **Changes**, and it opens as an integrated side panel or a keyboard-accessible popup overlay.
+`cli-usage` is a user mod for Herdr that displays live quota and session token usage for Claude Code, OpenAI Codex CLI, Antigravity (`agy`), and Devin CLI. Only the CLIs that are actually installed on the target machine are shown. It adds a **Usage** button to the top-right titlebar beside **Files** and **Changes**, and it opens as an integrated side panel or a keyboard-accessible popup overlay.
 
 When you select a remote SSH workspace in Herdr, the mod automatically collects telemetry from that remote machine over Herdr's SSH bridge.
 
@@ -11,7 +11,8 @@ Before you install the mod, verify that your environment meets these requirement
 - macOS with `Herdr.app` installed in `/Applications/Herdr.app` or `~/Applications/Herdr.app`.
 - `herdr-app` CLI installed in `~/.local/bin/herdr-app` or on your `PATH`.
 - `sqlite3` available on the local machine and on any monitored remote SSH host.
-- One or more supported coding CLIs installed (`devin`, `agy`, or `codex`).
+- One or more supported coding CLIs installed (`claude`, `codex`, `agy`, or `devin`).
+- `python3` on the target machine for Claude Code token statistics (optional).
 
 ## Install the mod
 
@@ -49,7 +50,7 @@ mkdir -p ~/.config/herdr-app/layouts
 2. Copy the `cli-usage` mod files into `~/.config/herdr-app/mods/cli-usage/`:
 
 ```sh
-cp mod.json main.js devin.svg ~/.config/herdr-app/mods/cli-usage/
+cp mod.json main.js *.svg ~/.config/herdr-app/mods/cli-usage/
 cp collectors/*.js ~/.config/herdr-app/mods/cli-usage/collectors/
 ```
 
@@ -82,12 +83,15 @@ After you activate the `main-usage` layout, the **Usage** button appears in the 
 
 ### Filter by tool tab
 
-Click a tab along the top of the panel to filter the display:
+Tabs appear only for CLIs detected on the target machine. CLIs that are not installed are hidden and listed in a single "Not detected" line at the bottom of **Overview**. With only one CLI installed, the tab bar is hidden and its details are shown directly; with none, the panel shows an empty state with a **Scan again** button.
 
-- **All.** Shows compact summary cards for Devin, Antigravity, and Codex in a single view.
-- **Devin.** Shows cycle ACU consumption, active plan limits, model breakdown, tool call counts, and recent sessions.
-- **AGY.** Shows live per-model quota bars, reset countdowns, credit balances, and local conversation metrics.
-- **Codex.** Shows 5-hour primary and 7-day secondary rate-limit windows, cumulative token usage, model distribution, and recent threads.
+- **Overview.** One compact card per detected CLI with every plan-limit bar, reset countdown, and a one-line summary. Click a card to open its details.
+- **Claude.** 5-hour session and weekly (all models / Opus / Sonnet) plan limits, extra-usage, today / 7-day / 30-day token totals, a 7-day daily token chart, per-model breakdown, and recent sessions.
+- **Codex.** Primary and weekly rate-limit windows, credits, token usage, model distribution, and recent threads.
+- **AGY.** Live per-model quota bars, reset countdowns, credit balances, and local conversation metrics.
+- **Devin.** Cycle ACU consumption, plan, model breakdown, and recent sessions.
+
+Keyboard shortcuts (when the panel is focused): `R` refreshes, `1`–`5` jump to a tab, `←`/`→` cycle tabs, `Esc` closes the popup. A colored dot on a tab means one of that CLI's limits is above 65%.
 
 ### Switch the target machine
 
@@ -116,6 +120,7 @@ herdr-app do cli-usage.refresh
 
 # Switch the active tab (all, devin, agy, or codex)
 herdr-app do cli-usage.tab:all
+herdr-app do cli-usage.tab:claude
 herdr-app do cli-usage.tab:devin
 herdr-app do cli-usage.tab:agy
 herdr-app do cli-usage.tab:codex
@@ -152,6 +157,10 @@ If `"layout"` is `"main"`, switch to `"main-usage"`:
 ```sh
 herdr-app do layout.switch '{"name":"main-usage"}'
 ```
+
+### Claude Code shows local stats but no plan limits
+
+Plan limits come from `GET https://api.anthropic.com/api/oauth/usage`, authenticated with the OAuth token Claude Code stores in the macOS Keychain (`Claude Code-credentials`) or in `~/.claude/.credentials.json`. They are only available when you sign in to `claude` with a Pro / Max / Team subscription; API-key and custom-endpoint setups show local token stats only. The mod never refreshes the token itself, so if it reports an expired token, run `claude` once. Token statistics are aggregated from `~/.claude/projects/**/*.jsonl` (last 30 days) with `python3`, and per-file results are cached in `~/.cache/herdr-cli-usage/`.
 
 ### Devin shows cached or empty plan quota
 

@@ -10,7 +10,9 @@ The installer places files in the following paths under `~/.config/herdr-app/`:
 | :--- | :--- |
 | `~/.config/herdr-app/mods/cli-usage/mod.json` | Mod manifest for `cli-usage`. |
 | `~/.config/herdr-app/mods/cli-usage/main.js` | GPUI `View` class (`CliUsageMod`), state management, and command handlers for `cli-usage`. |
-| `~/.config/herdr-app/mods/cli-usage/devin.svg` | Vector icon rendered in the panel and in the top-bar **Usage** button. |
+| `~/.config/herdr-app/mods/cli-usage/usage.svg` | Gauge icon rendered in the panel header and the top-bar **Usage** button. |
+| `~/.config/herdr-app/mods/cli-usage/refresh.svg` | Refresh button icon. |
+| `~/.config/herdr-app/mods/cli-usage/collectors/claude.js` | Collector for Claude Code session JSONL token usage, OAuth credentials, and live plan limits. |
 | `~/.config/herdr-app/mods/cli-usage/collectors/devin.js` | Collector for Devin CLI `sessions.db`, credentials, cached status binaries, and live quota. |
 | `~/.config/herdr-app/mods/cli-usage/collectors/agy.js` | Collector for `agy` CLI JSON probes (`/usage`, `/credits`, `/model`) and `conversation_summaries.db`. |
 | `~/.config/herdr-app/mods/cli-usage/collectors/codex.js` | Collector for Codex CLI `state_5.sqlite`, rollout JSONL files, `wham/usage`, and `app-server`. |
@@ -30,6 +32,7 @@ Run these commands with `herdr-app do <command> [json-payload]`:
 | `mod.open` | `'{"name":"cli-usage"}'` | Opens `cli-usage` as a floating popup overlay in any layout. |
 | `cli-usage.refresh` | None | Runs a full collection pass, including remote quota probes. |
 | `cli-usage.tab:all` | None | Switches the active panel view to the **All** summary tab. |
+| `cli-usage.tab:claude` | None | Switches the active panel view to the **Claude** detail tab. |
 | `cli-usage.tab:devin` | None | Switches the active panel view to the **Devin** detail tab. |
 | `cli-usage.tab:agy` | None | Switches the active panel view to the **AGY** detail tab. |
 | `cli-usage.tab:codex` | None | Switches the active panel view to the **Codex** detail tab. |
@@ -63,6 +66,15 @@ Run these commands with `herdr-app do <command> [json-payload]`:
 ## Monitored data sources
 
 Each collector inspects specific paths and endpoints on the target machine (local Mac or remote SSH host):
+
+### Claude Code (`collectors/claude.js`)
+
+| Path or endpoint | Data collected |
+| :--- | :--- |
+| `claude --version` | Installed flag and version. |
+| `$CLAUDE_CONFIG_DIR` or `~/.claude/projects/**/*.jsonl` (and `~/.config/claude/projects`) | Per-reply token usage (input, output, cache write, cache read), models, and sessions for the last 30 days, de-duplicated by message and request ID. Aggregated with `python3`; per-file results cached in `~/.cache/herdr-cli-usage/claude-stats-v1.json`. |
+| macOS Keychain `Claude Code-credentials` or `~/.claude/.credentials.json` | OAuth access token, subscription type, and rate-limit tier (read only during full refreshes; never refreshed by the mod). |
+| `GET https://api.anthropic.com/api/oauth/usage` | Live `five_hour`, `seven_day`, `seven_day_opus`, `seven_day_sonnet` utilization and reset times, plus `extra_usage` (`anthropic-beta: oauth-2025-04-20`). Throttled to at most once per minute per machine. |
 
 ### Devin CLI (`collectors/devin.js`)
 
@@ -112,6 +124,7 @@ const target = {
 await collectDevinUsage(target);
 await collectAgyUsage(target);
 await collectCodexUsage(target);
+await collectClaudeUsage(target);
 ```
 
 - `machine`: Optional SSH machine identifier string (`undefined` for local execution) passed to `exec(cmd, args, { on: machine })` and `readTextFile(path, { on: machine })`.

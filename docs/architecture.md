@@ -17,7 +17,7 @@ In Herdr's stock `main` layout, the top-right **Files** and **Changes** buttons 
 
 Adding a third **Usage** button beside **Files** and **Changes** requires two overrides in `~/.config/herdr-app/`:
 
-1. **`mods/tabs-usage/main.js`.** A clone of the stock `tabs` mod that adds a third `panelButton("cli-usage", "Usage", "mods/cli-usage/devin.svg")` call right beside `files` and `changes`. Clicking **Usage** selects `cli-usage` in `panel-body` and shows `panel` (or hides `panel` when already active).
+1. **`mods/tabs-usage/main.js`.** A clone of the stock `tabs` mod that adds a third `panelButton("cli-usage", "Usage", "mods/cli-usage/usage.svg")` call right beside `files` and `changes`. Clicking **Usage** selects `cli-usage` in `panel-body` and shows `panel` (or hides `panel` when already active).
 2. **`layouts/main-usage.json`.** A clone of the stock `main` layout that replaces `"mod": "tabs"` with `"mod": "tabs-usage"` in the top bar and adds `{ "id": "cli-usage", "mod": "cli-usage", "title": "Usage" }` to the `panel-body` stack.
 
 Because both overrides are stored as separate clones (`tabs-usage` and `main-usage`), the built-in `main` layout remains untouched. Switching back to `"main"` with `herdr-app do layout.switch '{"name":"main"}'` immediately restores stock behavior.
